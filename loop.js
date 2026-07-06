@@ -1,5 +1,5 @@
 const puppeteer = require("puppeteer");
-const { navToInvoices, processInvoice } = require("./processing.js");
+const { navToRecords, processRecord } = require("./processing.js");
 
 // Helper Functions
 function delay(milliseconds) {
@@ -34,94 +34,90 @@ function getOptionValueByIndex(select, index) {
   return select.options[index].value;
 }
 
-async function compClientLoop(page) {
+async function orgAccountLoop(page) {
   /*
-    To create a loop through of company + client pairings,
-    I started by getting all possible company values from
+    To create a loop through of organization + account pairings,
+    I started by getting all possible organization values from
     the makeshift dropdown field. The length of which would become 
     the number of times my larger loop needed to run.
     */
-  await page.click("company_client_selector");
+  await page.click("organization_account_selector");
   await delay(2000);
-  const companies = await page.$$eval(
-    "company_options_selectors",
+  const orgs = await page.$$eval(
+    "organization_options_selectors",
     getTextFromElements,
   );
   /*If not clicked again, even if not visible it is still
     loaded in dom and causes errors when looping*/
-  await page.click("company_client_selector");
+  await page.click("organization_account_selector");
 
   await delay(2000);
 
-  for (let company = 1; company < companies.length + 1; company++) {
-    await page.waitForSelector("company_client_selector", {
+  for (let organization = 1; organization < orgs.length + 1; organization++) {
+    await page.waitForSelector("organization_account_selector", {
       visible: true,
       timeout: 20000,
     });
 
-    await page.click("company_client_selector");
+    await page.click("organization_account_selector");
 
-    await page.waitForSelector("client_selector", {
+    await page.waitForSelector("account_selector", {
       visible: true,
       timeout: 15000,
     });
 
     await delay(1000);
 
-    const companyOptionSelector = `company_selector:nth-child(${company})`;
-    await page.$eval(companyOptionSelector, scrollAndClick);
+    const organizationOptionSelector = `organization_selector:nth-child(${organization})`;
+    await page.$eval(organizationOptionSelector, scrollAndClick);
 
-    await delay(3000); // Allow buffor for clients to update based on selected company
+    await delay(3000); // Allow buffor for accounts to update based on selected organization
 
-    const clients = await page.$$eval(
-      "client_selector option",
+    const accounts = await page.$$eval(
+      "account_selector option",
       getOptionTextVals,
     );
 
     // We start and end here as the dropdown within the site has an empty
     // value in the first index
-    for (let client = 1; client < clients.length; client++) {
-      const clientSelector = "client_selector";
+    for (let account = 1; account < accounts.length; account++) {
+      const accountSelector = "account_selector";
 
-      const clientValue = await page.$eval(
-        clientSelector,
+      const accountValue = await page.$eval(
+        accountSelector,
         getOptionValueByIndex,
-        client,
+        account,
       );
 
-      await page.select(clientSelector, clientValue);
+      await page.select(accountSelector, accountValue);
 
       await delay(3000);
       await page.click("go_button");
 
       await delay(5000);
 
-      await navToInvoices(page);
+      await navToRecords(page);
 
-      let invoices = await page.$$eval(
-        "invoice_links_selector",
+      let Records = await page.$$eval(
+        "Record_links_selector",
         getTextFromElements,
       );
 
-      if (invoices.length == 0) {
-        console.log("No invoices to log.");
+      if (Records.length == 0) {
+        console.log("No Records to log.");
         continue;
       }
 
-      for (
-        let invoiceIndex = 0;
-        invoiceIndex < invoices.length;
-        invoiceIndex++
-      ) {
-        await processInvoice(page, invoiceIndex);
+      for (let RecordIndex = 0; RecordIndex < Records.length; RecordIndex++) {
+        await processRecord(page, RecordIndex);
       }
       await delay(3000);
     }
-    console.log("Finished Scraping of Client...");
+    console.log("Finished Scraping of account...");
   }
   console.log("Finished scraping of everything.");
 
   return;
 }
 
-module.exports = { compClientLoop };
+module.exports = { orgAccountLoop };

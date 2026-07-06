@@ -2,58 +2,58 @@ const apiUrl = process.env.API_URL;
 const axios = require("axios");
 const { stripTypeScriptTypes } = require("node:module");
 
-async function checkrecord(recordNumber) {
+async function checkRecord(RecordNumber) {
   try {
-    console.log("CHECKING record...");
-    const response = await axios.get(`${apiUrl}/${recordNumber}`);
+    console.log("CHECKING Record...");
+    const response = await axios.get(`${apiUrl}/${RecordNumber}`);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.log(error.response.data);
-    } else {
-      console.log(error.message);
-    }
+    console.error({
+      event: "api_request_failed",
+      status: error.response?.status,
+      message: error.message,
+    });
   }
 }
 
-async function insertrecord(record) {
+async function insertRecord(Record) {
   try {
-    const response = await axios.post(`${apiUrl}`, record);
+    const response = await axios.post(`${apiUrl}`, Record);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.log(error.response.data);
-    } else {
-      console.log(error.message);
-    }
+    console.error({
+      event: "api_request_failed",
+      status: error.response?.status,
+      message: error.message,
+    });
   }
 }
 
-async function updaterecord(record) {
+async function updateRecord(Record) {
   try {
-    const response = await axios.put("apiUrl_@_recordNum", record);
+    const response = await axios.put("apiUrl_@_RecordNum", Record);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.log(error.response.data);
-    } else {
-      console.log(error.message);
-    }
+    console.error({
+      event: "api_request_failed",
+      status: error.response?.status,
+      message: error.message,
+    });
   }
 }
 
-async function syncrecordToDatabase(record) {
-  const recordExists = await checkrecord(record.recordNumber);
+async function syncRecordToDatabase(Record) {
+  const RecordExists = await checkRecord(Record.RecordNumber);
 
-  if (!recordExists) {
-    await insertrecord(record);
-    console.log(`INSERTED record ${record.recordNumber}`);
+  if (!RecordExists) {
+    await insertRecord(Record);
+    console.log(`INSERTED Record ${Record.RecordNumber}`);
   } else {
-    await updaterecord(record);
-    console.log(`UPDATED record ${record.recordNumber}`);
+    await updateRecord(Record);
+    console.log(`UPDATED Record ${Record.RecordNumber}`);
   }
 }
 
 module.exports = {
-  syncrecordToDatabase,
+  syncRecordToDatabase,
 };

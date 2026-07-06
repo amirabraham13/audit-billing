@@ -62,8 +62,8 @@ async function scrapeRecord(page) {
     ...item,
   }));
 
-  await appendRowsToCSV('record_csv_file_path', [Record]);
-  await appendRowsToCSV('line_items_csv_file_path', lineItemRecords);
+  await appendRowsToCSV("record_csv_file_path", [Record]);
+  await appendRowsToCSV("line_items_csv_file_path", lineItemRecords);
 
   return Record;
 }
@@ -72,21 +72,24 @@ async function scrapeRecordDetails(page) {
   let url = await page.url();
   let splitUrl = url.split("/");
 
-  let platform = "Billing Platform";
+  let platform = "External Platform";
   let domainReferenceNumber = splitUrl[5];
-  let referenceNumber = await page.$eval("claim_num_selector", getElementValue);
+  let referenceNumber = await page.$eval(
+    "reference_num_selector",
+    getElementValue,
+  );
   let RecordId = await page.$eval("Record_num_selector", getElementValue);
   let accountValue = await page.$eval("account_selector", getElementValue);
   let account = await page.$eval(
     `account_selector option[value="${accountValue}"]`,
     getTextContentValue,
   );
-  let fileNumber = await page.$eval('file_number_selector', getElementValue);
-  let RecordName = await page.$eval("case_name_selector", getTextContentValue);
-  let releaseDate = await page.$eval(
-    'release_date_selector',
-    getElementValue,
+  let fileNumber = await page.$eval("file_number_selector", getElementValue);
+  let RecordName = await page.$eval(
+    "record_name_selector",
+    getTextContentValue,
   );
+  let releaseDate = await page.$eval("release_date_selector", getElementValue);
   let totalBilled = await page.$eval(
     "total_billed_selector",
     getTextContentValue,
@@ -163,7 +166,9 @@ function cleanRecordDetails(scrapedRecord) {
     fileNumber:
       scrapedRecord.fileNumber == "--" ? null : scrapedRecord.fileNumber,
     referenceNumber:
-      scrapedRecord.referenceNumber == "--" ? null : scrapedRecord.referenceNumber,
+      scrapedRecord.referenceNumber == "--"
+        ? null
+        : scrapedRecord.referenceNumber,
     releaseDate: releaseDateMilliseconds,
     totalBilled: parseInt(
       scrapedRecord.totalBilled.replace(/[^0-9.-]/g, ""),
@@ -174,8 +179,8 @@ function cleanRecordDetails(scrapedRecord) {
       scrapedRecord.totalApproved.replace(/[^0-9.-]/g, ""),
       10,
     ),
-    appealCount: 0,
-    appealResponses: 0,
+    reviewCount: 0,
+    reviewResponses: 0,
     reviewDeadline: reviewDeadline,
     hasadjustments: hasadjustments,
     status: status,
