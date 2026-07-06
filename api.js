@@ -31,7 +31,7 @@ async function insertRecord(Record) {
 
 async function updateRecord(Record) {
   try {
-    const response = await axios.put("apiUrl_@_RecordNum", Record);
+    const response = await axios.put(`${apiUrl}/${Record.RecordNumber}`, Record);
     return response.data;
   } catch (error) {
     console.error({
