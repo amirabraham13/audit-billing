@@ -62,8 +62,8 @@ async function scrapeRecord(page) {
     ...item,
   }));
 
-  await appendRowsToCSV(RecordCSV, [Record]);
-  await appendRowsToCSV(lineItemsCSV, lineItemRecords);
+  await appendRowsToCSV('record_csv_file_path', [Record]);
+  await appendRowsToCSV('line_items_csv_file_path', lineItemRecords);
 
   return Record;
 }
@@ -363,7 +363,7 @@ async function navToRecords(page) {
 
 async function processRecord(page, index) {
   await navigateToRecord(page, index);
-  const curRecord = await scrapeRecord(page);
+  const currRecord = await scrapeRecord(page);
   await syncRecordToDatabase(currRecord);
 
   console.log("Finished looping through Record + line items.");

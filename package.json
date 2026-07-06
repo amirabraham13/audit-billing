@@ -1,0 +1,16 @@
+{
+  "name": "audit-billing-scraper",
+  "version": "1.0.0",
+  "description": "Sanitized browser automation pipeline for extracting billing records, cleaning line items, and syncing structured outputs.",
+  "main": "main.js",
+  "author": "Amir A. Abraham",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "json-2-csv": "^5.5.0",
+    "puppeteer": "^24.0.0"
+  }
+}
