@@ -53,7 +53,7 @@ async function compClientLoop(page) {
 
   await delay(2000);
 
-  for (let company = 1; companies.length + 1; company++) {
+  for (let company = 1; company < companies.length + 1; company++) {
     await page.waitForSelector("company_client_selector", {
       visible: true,
       timeout: 20000,

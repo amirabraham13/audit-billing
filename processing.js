@@ -1,8 +1,5 @@
-const { syncInvoiceToDatabase } = require("./api.js");
+const { syncRecordToDatabase } = require("./api.js");
 const { appendRowsToCSV } = require("./csv.js");
-
-const invoiceCSV = "invoices.csv";
-const lineItemsCSV = "lineItes.csv";
 
 // ============ Generic Helper Functions ==================
 function delay(milliseconds) {
@@ -18,16 +15,16 @@ function getTextContentValue(element) {
 }
 
 // =============== Other Function Helpers ==========================
-async function navigateToInvoice(page, index) {
-  const invoiceRowSelector = "invoice_link_selector";
+async function navigateToRecord(page, index) {
+  const RecordRowSelector = "Record_link_selector";
 
-  await page.waitForSelector(invoiceRowSelector, {
+  await page.waitForSelector(RecordRowSelector, {
     visible: true,
     timeout: 30000,
   });
 
   await page.$$eval(
-    invoiceRowSelector,
+    RecordRowSelector,
     (buttons, index) => {
       const button = buttons[index];
 
@@ -40,62 +37,62 @@ async function navigateToInvoice(page, index) {
   return page;
 }
 
-async function scrapeInvoice(page) {
-  const scrapedInvoice = await scrapeInvoiceDetails(page);
-  const cleanedInvoice = cleanInvoiceDetails(scrapedInvoice);
+async function scrapeRecord(page) {
+  const scrapedRecord = await scrapeRecordDetails(page);
+  const cleanedRecord = cleanRecordDetails(scrapedRecord);
 
   await navigateToLineItems(page);
-  const scrapedLineItems = await scrapeLineItems(page, cleanedInvoice);
+  const scrapedLineItems = await scrapeLineItems(page, cleanedRecord);
 
-  const cleanedLineItems = cleanLineItems(scrapedLineItems, cleanedInvoice);
-  const invoiceRecord = buildInvoiceRecord(cleanedInvoice, cleanedLineItems);
+  const cleanedLineItems = cleanLineItems(scrapedLineItems, cleanedRecord);
+  const Record = buildRecord(cleanedRecord, cleanedLineItems);
 
   await page.click("filter_selector");
 
-  const invoiceRowSelector = "invoice_row_selector";
+  const RecordRowSelector = "Record_row_selector";
 
-  await page.waitForSelector(invoiceRowSelector, {
+  await page.waitForSelector(RecordRowSelector, {
     visible: true,
     timeout: 30000,
   });
 
-  const lineItemRecords = invoiceRecord.lineItems.map((item) => ({
-    platform: invoiceRecord.platform,
-    invoiceNumber: invoiceRecord.invoiceNumber,
+  const lineItemRecords = Record.lineItems.map((item) => ({
+    platform: Record.platform,
+    RecordId: Record.RecordId,
     ...item,
   }));
 
-  await appendRowsToCSV(invoiceCSV, [invoiceRecord]);
+  await appendRowsToCSV(RecordCSV, [Record]);
   await appendRowsToCSV(lineItemsCSV, lineItemRecords);
 
-  return invoiceRecord;
+  return Record;
 }
 
-async function scrapeInvoiceDetails(page) {
+async function scrapeRecordDetails(page) {
   let url = await page.url();
   let splitUrl = url.split("/");
 
   let platform = "Billing Platform";
-  let platformInvoiceNumber = splitUrl[5];
-  let claimNumber = await page.$eval("claim_num_selector", getElementValue);
-  let invoiceNumber = await page.$eval("invoice_num_selector", getElementValue);
-  let clientValue = await page.$eval("client_selector", getElementValue);
-  let client = await page.$eval(
-    `client_selector option[value="${clientValue}"]`,
+  let domainReferenceNumber = splitUrl[5];
+  let referenceNumber = await page.$eval("claim_num_selector", getElementValue);
+  let RecordId = await page.$eval("Record_num_selector", getElementValue);
+  let accountValue = await page.$eval("account_selector", getElementValue);
+  let account = await page.$eval(
+    `account_selector option[value="${accountValue}"]`,
     getTextContentValue,
   );
-  let fileNumber = await page.$eval('file_number_selector"]', getElementValue);
-  let caseName = await page.$eval("case_name_selector", getTextContentValue);
+  let fileNumber = await page.$eval('file_number_selector', getElementValue);
+  let RecordName = await page.$eval("case_name_selector", getTextContentValue);
   let releaseDate = await page.$eval(
-    'release_date_selector"]',
+    'release_date_selector',
     getElementValue,
   );
   let totalBilled = await page.$eval(
     "total_billed_selector",
     getTextContentValue,
   );
-  let totalDeductions = await page.$eval(
-    "total_deductions_selector",
+  let totaladjustments = await page.$eval(
+    "total_adjustments_selector",
     getTextContentValue,
   );
   let totalApproved = await page.$eval(
@@ -105,15 +102,15 @@ async function scrapeInvoiceDetails(page) {
 
   return {
     platform,
-    platformInvoiceNumber,
-    claimNumber,
-    invoiceNumber,
-    client,
+    domainReferenceNumber,
+    referenceNumber,
+    RecordId,
+    account,
     fileNumber,
-    caseName,
+    RecordName,
     releaseDate,
     totalBilled,
-    totalDeductions,
+    totaladjustments,
     totalApproved,
   };
 }
@@ -141,46 +138,46 @@ function clickLineItemsButton() {
   throw new Error("Line Items button was not found.");
 }
 
-function cleanInvoiceDetails(scrapedInvoice) {
-  let totalDeductions = parseInt(
-    scrapedInvoice.totalDeductions.replace(/[^0-9.-]/g, ""),
+function cleanRecordDetails(scrapedRecord) {
+  let totaladjustments = parseInt(
+    scrapedRecord.totaladjustments.replace(/[^0-9.-]/g, ""),
     10,
   );
-  let status = totalDeductions > 0 ? "PAID WITH DEDUCTIONS" : "PAID IN FULL";
-  let hasDeductions = status == "PAID WITH DEDUCTIONS" ? true : false;
+  let status = totaladjustments > 0 ? "PAID WITH adjustmentS" : "PAID IN FULL";
+  let hasadjustments = status == "PAID WITH adjustmentS" ? true : false;
 
-  let [month, day, year] = scrapedInvoice.releaseDate.split("/").map(Number);
+  let [month, day, year] = scrapedRecord.releaseDate.split("/").map(Number);
   let formattedReleaseDate = new Date(year, month - 1, day);
   let releaseDateMilliseconds = formattedReleaseDate.getTime();
 
   let expirationDateObj = new Date(formattedReleaseDate);
   expirationDateObj.setDate(expirationDateObj.getDate() + 30);
-  let appealExpirationDate = expirationDateObj.getTime();
+  let reviewDeadline = expirationDateObj.getTime();
 
   return {
-    platform: scrapedInvoice.platform,
-    platformInvoiceNumber: scrapedInvoice.platformInvoiceNumber,
-    invoiceNumber: scrapedInvoice.invoiceNumber,
-    client: scrapedInvoice.client,
-    caseName: scrapedInvoice.caseName,
+    platform: scrapedRecord.platform,
+    domainReferenceNumber: scrapedRecord.domainReferenceNumber,
+    RecordId: scrapedRecord.RecordId,
+    account: scrapedRecord.account,
+    RecordName: scrapedRecord.RecordName,
     fileNumber:
-      scrapedInvoice.fileNumber == "--" ? null : scrapedInvoice.fileNumber,
-    claimNumber:
-      scrapedInvoice.claimNumber == "--" ? null : scrapedInvoice.claimNumber,
+      scrapedRecord.fileNumber == "--" ? null : scrapedRecord.fileNumber,
+    referenceNumber:
+      scrapedRecord.referenceNumber == "--" ? null : scrapedRecord.referenceNumber,
     releaseDate: releaseDateMilliseconds,
     totalBilled: parseInt(
-      scrapedInvoice.totalBilled.replace(/[^0-9.-]/g, ""),
+      scrapedRecord.totalBilled.replace(/[^0-9.-]/g, ""),
       10,
     ),
-    totalDeductions: totalDeductions,
+    totaladjustments: totaladjustments,
     totalApproved: parseInt(
-      scrapedInvoice.totalApproved.replace(/[^0-9.-]/g, ""),
+      scrapedRecord.totalApproved.replace(/[^0-9.-]/g, ""),
       10,
     ),
     appealCount: 0,
     appealResponses: 0,
-    appealExpirationDate: appealExpirationDate,
-    hasDeductions: hasDeductions,
+    reviewDeadline: reviewDeadline,
+    hasadjustments: hasadjustments,
     status: status,
   };
 }
@@ -213,7 +210,7 @@ async function getCellTextFromRow(row, index, fallback = undefined) {
   return text || fallback;
 }
 
-async function scrapeLineItems(page, cleanedInvoice) {
+async function scrapeLineItems(page, cleanedRecord) {
   const li_firstCells = await page.$$("first_table_cell_selector");
 
   const rowHandles = await page.$$("handle_selectors");
@@ -222,7 +219,7 @@ async function scrapeLineItems(page, cleanedInvoice) {
   const rows = await buildLineItemRows(rowHandles);
 
   return {
-    invoiceNumber: cleanedInvoice.invoiceNumber,
+    RecordId: cleanedRecord.RecordId,
     lineItemCount,
     rows,
   };
@@ -252,11 +249,11 @@ async function buildLineItemRow(row) {
     currentTotal: await getCellTextFromRow(row, 12),
     description: await getCellTextFromRow(row, 13),
     timeKeeperName: await getCellTextFromRow(row, 14, ""),
-    deductionReason: await getCellTextFromRow(row, 15),
+    adjustmentReason: await getCellTextFromRow(row, 15),
   };
 }
 
-function cleanLineItems(scrapedLineItems, cleanedInvoice) {
+function cleanLineItems(scrapedLineItems, cleanedRecord) {
   const cleanedRows = scrapedLineItems.rows.map((item) => {
     let rawDate = item.rawDate;
     let lcode = item.lcode;
@@ -273,21 +270,21 @@ function cleanLineItems(scrapedLineItems, cleanedInvoice) {
         : item.timeKeeperName.match(/\b\w/g).join("");
 
     let description = item.description;
-    let deductionReason = item.deductionReason;
+    let adjustmentReason = item.adjustmentReason;
 
-    let deductionAmount = Math.abs(currentTotal - cost).toFixed(1);
-    let deductionHours = ((hours * deductionAmount) / cost).toFixed(1);
+    let adjustmentAmount = Math.abs(currentTotal - cost).toFixed(1);
+    let adjustmentHours = ((hours * adjustmentAmount) / cost).toFixed(1);
 
     let [month, day, year] = rawDate.split("/").map(Number);
     let formattedDate = new Date(year, month - 1, day);
     let date = formattedDate.getTime();
 
     let isFee = type == "FEE";
-    let hasDeductions = currentTotal != cost;
+    let hasadjustments = currentTotal != cost;
 
     return {
-      platform: cleanedInvoice.platform,
-      invoiceNumber: cleanedInvoice.invoiceNumber,
+      platform: cleanedRecord.platform,
+      RecordId: cleanedRecord.RecordId,
       rawDate,
       date,
       lcode,
@@ -300,25 +297,25 @@ function cleanLineItems(scrapedLineItems, cleanedInvoice) {
       rate,
       cost,
       currentTotal,
-      hasDeductions: hasDeductions,
-      deductionReason,
-      deductionHours,
-      deductionAmount,
-      deductionRate: 0,
-      deductionDescription: "",
+      hasadjustments: hasadjustments,
+      adjustmentReason,
+      adjustmentHours,
+      adjustmentAmount,
+      adjustmentRate: 0,
+      adjustmentDescription: "",
     };
   });
 
   return {
-    invoiceNumber: cleanedInvoice.invoiceNumber,
+    RecordId: cleanedRecord.RecordId,
     lineItemCount: scrapedLineItems.lineItemCount,
     rows: cleanedRows,
   };
 }
 
-function buildInvoiceRecord(cleanedInvoice, cleanedLineItems) {
+function buildRecord(cleanedRecord, cleanedLineItems) {
   return {
-    ...cleanedInvoice,
+    ...cleanedRecord,
     lineItemCount: cleanedLineItems.lineItemCount,
     lineItems: cleanedLineItems.rows,
   };
@@ -326,19 +323,19 @@ function buildInvoiceRecord(cleanedInvoice, cleanedLineItems) {
 
 // ====================================================
 
-async function navToInvoices(page) {
+async function navToRecords(page) {
   await delay(2000);
-  await page.click("invoice_link_selector");
+  await page.click("Record_link_selector");
 
   await delay(2000);
-  console.log("Navigated to Invoices Page...");
+  console.log("Navigated to Records Page...");
 
-  await page.waitForSelector("filter_invoices_selector", {
+  await page.waitForSelector("filter_Records_selector", {
     visible: true,
     timeout: 30000,
   });
 
-  await page.click("filter_invoices_selector");
+  await page.click("filter_Records_selector");
 
   await page.waitForSelector("specific_filter_selector", {
     visible: true,
@@ -347,7 +344,7 @@ async function navToInvoices(page) {
 
   await page.click("specific_filter_selector");
 
-  console.log("Implemented invoices filter...");
+  console.log("Implemented Records filter...");
 
   await delay(2000);
 
@@ -364,17 +361,16 @@ async function navToInvoices(page) {
   return;
 }
 
-async function processInvoice(page, index) {
-  await navigateToInvoice(page, index);
-  const currInvoice = await scrapeInvoice(page);
-  console.log(currInvoice);
-  await syncInvoiceToDatabase(currInvoice);
+async function processRecord(page, index) {
+  await navigateToRecord(page, index);
+  const curRecord = await scrapeRecord(page);
+  await syncRecordToDatabase(currRecord);
 
-  console.log("Finished looping through invoice + line items.");
+  console.log("Finished looping through Record + line items.");
   return;
 }
 
 module.exports = {
-  navToInvoices,
-  processInvoice,
+  navToRecords,
+  processRecord,
 };

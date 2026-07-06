@@ -21,9 +21,9 @@ async function askQuestion(query) {
 }
 
 let browser, page;
-const siteUrl = process.env.siteUrl;
-const username = process.env.username;
-const password = process.env.password;
+const siteUrl = process.env.SITE_URL;
+const username = process.env.USERNAME;
+const password = process.env.PASSWORD;
 
 async function initialLogin() {
   browser = await puppeteer.launch({ headless: false });

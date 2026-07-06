@@ -1,11 +1,11 @@
-const apiUrl = process.env.apiUrl;
+const apiUrl = process.env.API_URL;
 const axios = require("axios");
 const { stripTypeScriptTypes } = require("node:module");
 
-async function checkInvoice(invoiceNumber) {
+async function checkrecord(recordNumber) {
   try {
-    console.log("CHECKING INVOICE...");
-    const response = await axios.get("apiUrl_@_invoiceNum");
+    console.log("CHECKING record...");
+    const response = await axios.get(`${apiUrl}/${recordNumber}`);
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -16,9 +16,9 @@ async function checkInvoice(invoiceNumber) {
   }
 }
 
-async function insertInvoice(invoice) {
+async function insertrecord(record) {
   try {
-    const response = await axios.post("apiUrl_@_invoiceNum", invoice);
+    const response = await axios.post(`${apiUrl}`, record);
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -29,9 +29,9 @@ async function insertInvoice(invoice) {
   }
 }
 
-async function updateInvoice(invoice) {
+async function updaterecord(record) {
   try {
-    const response = await axios.put("apiUrl_@_invoiceNum", invoice);
+    const response = await axios.put("apiUrl_@_recordNum", record);
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -42,19 +42,18 @@ async function updateInvoice(invoice) {
   }
 }
 
-async function syncInvoiceToDatabase(invoice) {
-  const invoiceExists = await checkInvoice(invoice.invoiceNumber);
-  console.log(invoice);
+async function syncrecordToDatabase(record) {
+  const recordExists = await checkrecord(record.recordNumber);
 
-  if (!invoiceExists) {
-    await insertInvoice(invoice);
-    console.log(`INSERTED INVOICE ${invoice.invoiceNumber}`);
+  if (!recordExists) {
+    await insertrecord(record);
+    console.log(`INSERTED record ${record.recordNumber}`);
   } else {
-    await updateInvoice(invoice);
-    console.log(`UPDATED INVOICE ${invoice.invoiceNumber}`);
+    await updaterecord(record);
+    console.log(`UPDATED record ${record.recordNumber}`);
   }
 }
 
 module.exports = {
-  syncInvoiceToDatabase,
+  syncrecordToDatabase,
 };

@@ -4,11 +4,13 @@ const { compClientLoop } = require("./loop.js");
 async function main() {
   try {
     let page = await initialLogin();
-    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+    return new Promise((resolve) => setTimeout(resolve, 3000));
     await compClientLoop(page);
-    process.exit(1);
+    process.exit(0);
   } catch (error) {
     console.log(error);
-    process.exit(0);
+    process.exit(1);
   }
-}
+};
+
+main();
